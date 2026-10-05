@@ -14,11 +14,11 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
 {
     public const string Guid = "com.dadisbored.dadsadventuremapping";
     public const string Name = "DadsAdventureMapping";
-    public const string Version = "1.0.3";
+    public const string Version = "1.0.4";
     internal const float MarkerRange = 25f;
 
     internal static ConfigEntry<float> RevealMultiplier = null!;
-    private readonly Dictionary<PoiCategory, ConfigEntry<bool>> _markers = new();
+    private readonly Dictionary<PoiDefinition, ConfigEntry<bool>> _markers = new();
     private readonly List<ZDO> _nearObjects = new();
     private readonly List<ZDO> _farObjects = new();
     private static readonly FieldInfo LocationHashesField = AccessTools.Field(typeof(ZoneSystem), "m_locationsByHash");
@@ -32,40 +32,14 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
         RevealMultiplier = Config.Bind("1 - Map Reveal", "Reveal Size Multiplier", 2f,
             new ConfigDescription("Map area revealed as the player moves, from 2x to 5x the normal radius.",
                 new AcceptableValueRange<float>(2f, 5f)));
-        Bind(PoiCategory.Towers, "Towers", true);
-        Bind(PoiCategory.Houses, "Houses", false);
-        Bind(PoiCategory.ResourceVeins, "Resource Veins", true);
-        Bind(PoiCategory.Tombs, "Tombs", true);
-        Bind(PoiCategory.Chambers, "Chambers", true);
-        Bind(PoiCategory.Crypts, "Crypts", true);
-        Bind(PoiCategory.Caves, "Caves and Caverns", true);
-        Bind(PoiCategory.Mines, "Mines", true);
-        Bind(PoiCategory.Villages, "Villages", false);
-        Bind(PoiCategory.TarPits, "Tar Pits", false);
-        Bind(PoiCategory.BossAltars, "Boss Sites", false);
-        Bind(PoiCategory.BossVegvisirs, "Boss Vegvisirs", false);
-        Bind(PoiCategory.Camps, "Camps", false);
-        Bind(PoiCategory.Ruins, "Ruins", false);
-        Bind(PoiCategory.Fortresses, "Fortresses", false);
-        Bind(PoiCategory.Farms, "Farms", false);
-        Bind(PoiCategory.Merchants, "Merchants", false);
-        Bind(PoiCategory.Runestones, "Runestones", false);
-        Bind(PoiCategory.Wells, "Wells", false);
-        Bind(PoiCategory.Shipwrecks, "Shipwrecks", false);
-        Bind(PoiCategory.StoneCircles, "Stone Circles", false);
-        Bind(PoiCategory.Landmarks, "Landmarks", false);
-        Bind(PoiCategory.Nests, "Nests", false);
-        Bind(PoiCategory.Excavations, "Excavation Sites", false);
-        Bind(PoiCategory.Spawners, "Spawners", false);
+        foreach (PoiDefinition definition in PoiCatalog.Definitions)
+            _markers.Add(definition, Config.Bind("2 - Auto Markers", definition.SettingName,
+                definition.DefaultEnabled,
+                "Mark " + definition.PinLabel + " after coming within 25 meters. Prefabs: " +
+                string.Join(", ", definition.PrefabNames)));
 
         _harmony = new Harmony(Guid);
         _harmony.PatchAll(typeof(DadsAdventureMappingPlugin).Assembly);
-    }
-
-    private void Bind(PoiCategory category, string name, bool enabled)
-    {
-        _markers.Add(category, Config.Bind("2 - Auto Markers", name, enabled,
-            "Place a map pin for this category after coming within 25 meters of a matching prefab."));
     }
 
     private void Update()
@@ -85,8 +59,8 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
         foreach (ZoneSystem.LocationInstance location in zones.GetLocationList())
         {
             if (location.m_location != null &&
-                PoiCatalog.TryGetLocation(location.m_location.m_prefabName, out PoiCategory category))
-                TryMark(map, position, location.m_position, category);
+                PoiCatalog.TryGetLocation(location.m_location.m_prefabName, out PoiDefinition definition))
+                TryMark(map, position, location.m_position, definition);
         }
 
         // LocationProxy ZDOs cover locations whose Location component is inactive or absent.
@@ -107,11 +81,11 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
             {
                 int locationHash = zdo.GetInt(ZDOVars.s_location);
                 if (locationsByHash.TryGetValue(locationHash, out ZoneSystem.ZoneLocation location) &&
-                    PoiCatalog.TryGetLocation(location.m_prefabName, out PoiCategory category))
-                    TryMark(map, position, target, category);
+                    PoiCatalog.TryGetLocation(location.m_prefabName, out PoiDefinition definition))
+                    TryMark(map, position, target, definition);
             }
-            else if (PoiCatalog.TryGetObject(prefab, out PoiCategory category))
-                TryMark(map, position, target, category);
+            else if (PoiCatalog.TryGetObject(prefab, out PoiDefinition definition))
+                TryMark(map, position, target, definition);
         }
 
         // Some placed prefabs can be active in the scene before their ZDO is available.
@@ -129,14 +103,14 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
         Vector3 target = component.transform.position;
         if ((player - target).sqrMagnitude > MarkerRange * MarkerRange) return;
         string name = Utils.GetPrefabName(component.gameObject);
-        if (PoiCatalog.TryGetObject(name.GetStableHashCode(), out PoiCategory category))
-            TryMark(map, player, target, category);
+        if (PoiCatalog.TryGetObject(name.GetStableHashCode(), out PoiDefinition definition))
+            TryMark(map, player, target, definition);
     }
 
-    private void TryMark(Minimap map, Vector3 player, Vector3 target, PoiCategory category)
+    private void TryMark(Minimap map, Vector3 player, Vector3 target, PoiDefinition definition)
     {
         if ((player - target).sqrMagnitude > MarkerRange * MarkerRange) return;
-        if (!_markers[category].Value) return;
+        if (!_markers[definition].Value) return;
 
         // Existing native pins survive reloads; checking them also prevents marking a user-pinned site twice.
         foreach (Minimap.PinData pin in (List<Minimap.PinData>)PinsField.GetValue(map))
@@ -145,8 +119,8 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
             float pz = pin.m_pos.z - target.z;
             if (px * px + pz * pz < 16f) return;
         }
-        Minimap.PinType icon = category == PoiCategory.ResourceVeins ? Minimap.PinType.Icon2 : Minimap.PinType.Icon3;
-        map.AddPin(target, icon, PoiCatalog.Label(category), true, false, Player.m_localPlayer.GetPlayerID());
+        Minimap.PinType icon = definition.Category == PoiCategory.ResourceVeins ? Minimap.PinType.Icon2 : Minimap.PinType.Icon3;
+        map.AddPin(target, icon, definition.PinLabel, true, false, Player.m_localPlayer.GetPlayerID());
     }
 
     private void OnDestroy() => _harmony?.UnpatchSelf();

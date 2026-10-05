@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace DadsAdventureMapping;
 
 internal enum PoiCategory
 {
-    Towers, Houses, ResourceVeins, Tombs, Chambers, Crypts, Caves, Mines,
+    Towers, Houses, ResourceVeins, Tombs, Dolmens, Chambers, Crypts, Caves, Mines,
     Villages, TarPits, BossAltars, BossVegvisirs, Camps, Ruins, Fortresses,
     Farms, Merchants, Runestones, Wells, Shipwrecks, StoneCircles, Landmarks,
     Nests, Excavations, Spawners
@@ -14,17 +15,42 @@ internal enum PoiCategory
 // Names below come from the Valheim 1.0.16 _ZoneSystem and _LocationList
 // prefabs in valheim_Data/StreamingAssets/SoftRef/Bundles, plus object prefab
 // paths in manifest_extended. Only actual prefab names are accepted.
+internal sealed class PoiDefinition
+{
+    internal readonly string Key;
+    internal readonly string SettingName;
+    internal readonly string PinLabel;
+    internal readonly PoiCategory Category;
+    internal readonly bool DefaultEnabled;
+    internal readonly List<string> PrefabNames = new();
+
+    internal PoiDefinition(string key, PoiCategory category)
+    {
+        Key = key;
+        Category = category;
+        SettingName = PoiCatalog.DisplayName(key);
+        PinLabel = PoiCatalog.PinLabel(key);
+        DefaultEnabled = category == PoiCategory.Towers || category == PoiCategory.ResourceVeins ||
+            category == PoiCategory.Tombs || category == PoiCategory.Chambers ||
+            category == PoiCategory.Crypts || category == PoiCategory.Caves ||
+            category == PoiCategory.Mines;
+    }
+}
+
 internal static class PoiCatalog
 {
     internal static readonly int LocationProxyHash = "LocationProxy".GetStableHashCode();
-    private static readonly Dictionary<string, PoiCategory> Locations = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly Dictionary<int, PoiCategory> Objects = new();
+    private static readonly Dictionary<string, PoiDefinition> Locations = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<int, PoiDefinition> Objects = new();
+    private static readonly Dictionary<string, PoiDefinition> Families = new(StringComparer.OrdinalIgnoreCase);
+    internal static readonly List<PoiDefinition> Definitions = new();
 
     static PoiCatalog()
     {
         AddLocations(PoiCategory.Towers, "StoneTower1 StoneTower2 StoneTower3 StoneTower4 StoneTowerRuins03 StoneTowerRuins04 StoneTowerRuins05 StoneTowerRuins07 StoneTowerRuins08 StoneTowerRuins09 StoneTowerRuins10 Mistlands_GuardTower1_new Mistlands_GuardTower1_ruined_new Mistlands_GuardTower1_ruined_new2 Mistlands_GuardTower2_new Mistlands_GuardTower3_new Mistlands_GuardTower3_ruined_new Mistlands_Lighthouse1_new CharredTowerRuins1 CharredTowerRuins1_dvergr CharredTowerRuins2 CharredTowerRuins3");
         AddLocations(PoiCategory.Houses, "WoodHouse1 WoodHouse2 WoodHouse3 WoodHouse4 WoodHouse5 WoodHouse6 WoodHouse7 WoodHouse8 WoodHouse9 WoodHouse10 WoodHouse11 WoodHouse12 WoodHouse13 StoneHouse1 StoneHouse2 StoneHouse3 StoneHouse4 StoneHouse5 StoneHouse1_heath StoneHouse2_heath StoneHouse5_heath SwampHut1 SwampHut2 SwampHut3 SwampHut4 SwampHut5 AbandonedLogCabin02 AbandonedLogCabin03 AbandonedLogCabin04");
-        AddLocations(PoiCategory.Tombs, "Grave1 MountainGrave01 Dolmen01 Dolmen02 Dolmen03");
+        AddLocations(PoiCategory.Tombs, "Grave1 MountainGrave01");
+        AddLocations(PoiCategory.Dolmens, "Dolmen01 Dolmen02 Dolmen03");
         // Crypt2/3/4 are the Black Forest burial chamber locations; SunkenCrypt is a swamp crypt.
         AddLocations(PoiCategory.Chambers, "Crypt2 Crypt3 Crypt4");
         AddLocations(PoiCategory.Crypts, "SunkenCrypt1 SunkenCrypt2 SunkenCrypt3 SunkenCrypt4 Hildir_crypt");
@@ -54,35 +80,97 @@ internal static class PoiCatalog
     private static void AddLocations(PoiCategory category, string names)
     {
         foreach (string name in names.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
-            Locations.Add(name, category);
+        {
+            PoiDefinition definition = GetDefinition(name, category);
+            Locations.Add(name, definition);
+            definition.PrefabNames.Add(name);
+        }
     }
 
     private static void AddObjects(PoiCategory category, string names)
     {
         foreach (string name in names.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
-            Objects.Add(name.GetStableHashCode(), category);
+        {
+            PoiDefinition definition = GetDefinition(name, category);
+            Objects.Add(name.GetStableHashCode(), definition);
+            definition.PrefabNames.Add(name);
+        }
     }
 
-    internal static bool TryGetLocation(string name, out PoiCategory category) =>
-        Locations.TryGetValue(name ?? string.Empty, out category);
-
-    internal static bool TryGetObject(int prefabHash, out PoiCategory category) =>
-        Objects.TryGetValue(prefabHash, out category);
-
-    internal static string Label(PoiCategory category)
+    private static PoiDefinition GetDefinition(string name, PoiCategory category)
     {
-        switch (category)
+        string key = FamilyKey(name);
+        if (!Families.TryGetValue(key, out PoiDefinition definition))
         {
-            case PoiCategory.ResourceVeins: return "Resource vein";
-            case PoiCategory.Caves: return "Cave";
-            case PoiCategory.TarPits: return "Tar pit";
-            case PoiCategory.BossAltars: return "Boss site";
-            case PoiCategory.BossVegvisirs: return "Boss Vegvisir";
-            case PoiCategory.StoneCircles: return "Stone circle";
-            case PoiCategory.Excavations: return "Excavation site";
+            definition = new PoiDefinition(key, category);
+            Families.Add(key, definition);
+            Definitions.Add(definition);
+        }
+        else if (definition.Category != category)
+            throw new InvalidOperationException("POI family has conflicting categories: " + key);
+        return definition;
+    }
+
+    private static string FamilyKey(string name)
+    {
+        // Only numbered variants of the same prefab stem share a setting.
+        // The old and new copper rock prefabs both represent copper deposits.
+        if (name.Equals("rock4_copper", StringComparison.OrdinalIgnoreCase)) return "MineRock_Copper";
+        return Regex.Replace(name, "[0-9]+", string.Empty).TrimEnd('_');
+    }
+
+    internal static bool TryGetLocation(string name, out PoiDefinition definition) =>
+        Locations.TryGetValue(name ?? string.Empty, out definition);
+
+    internal static bool TryGetObject(int prefabHash, out PoiDefinition definition) =>
+        Objects.TryGetValue(prefabHash, out definition);
+
+    private static string Readable(string key) =>
+        Regex.Replace(key.Replace('_', ' '), "([a-z])([A-Z])", "$1 $2");
+
+    internal static string DisplayName(string key)
+    {
+        switch (key)
+        {
+            case "Dolmen": return "Dolmens";
+            case "Crypt": return "Burial Chambers";
+            case "GDKing": return "Elder Altars";
+            case "Eikthyrnir": return "Eikthyr Altars";
+            case "Dragonqueen": return "Moder Altars";
+            case "GoblinKing": return "Yagluth Altars";
+            case "Mistlands_DvergrTownEntrance": return "Infested Mines";
+            case "Mistlands_DvergrBossEntrance": return "Queen Entrances";
+            case "Mistlands_GuardTower_new": return "Mistlands Guard Towers";
+            case "Mistlands_GuardTower_ruined_new": return "Mistlands Ruined Guard Towers";
+            case "CharredTowerRuins_dvergr": return "Dvergr Charred Tower Ruins";
+            case "MorgenHole": return "Morgen Caves";
+            case "Vegvisir_placeofmystery": return "Place of Mystery Vegvisirs";
+            case "MineRock_Copper": return "Copper Deposits";
+            case "MineRock_Tin": return "Tin Deposits";
+            case "MineRock_Iron": return "Iron Deposits";
+            case "MineRock_Obsidian": return "Obsidian Deposits";
+            case "MineRock_Meteorite": return "Meteorite Deposits";
+            case "MineRock_Stone": return "Stone Deposits";
+            case "silvervein": return "Silver Veins";
+            case "FlametalRockstand": return "Flametal Veins";
+            case "mudpile": return "Mud Piles";
             default:
-                string name = category.ToString();
-                return name.EndsWith("s", StringComparison.Ordinal) ? name.Substring(0, name.Length - 1) : name;
+                string readable = Readable(key);
+                if (readable.EndsWith("House", StringComparison.Ordinal)) return readable + "s";
+                if (readable.EndsWith("s", StringComparison.Ordinal)) return readable;
+                return readable + "s";
+        }
+    }
+
+    internal static string PinLabel(string key)
+    {
+        switch (key)
+        {
+            case "Crypt": return "Burial Chamber";
+            case "Mistlands_DvergrTownEntrance": return "Infested Mine";
+            case "Mistlands_DvergrBossEntrance": return "Queen Entrance";
+            case "MorgenHole": return "Morgen Cave";
+            default: return Readable(key);
         }
     }
 }
