@@ -14,13 +14,14 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
 {
     public const string Guid = "com.dadisbored.dadsadventuremapping";
     public const string Name = "DadsAdventureMapping";
-    public const string Version = "1.0.5";
+    public const string Version = "1.0.6";
     internal const float MarkerRange = 25f;
 
     internal static ConfigEntry<float> RevealMultiplier = null!;
     private readonly Dictionary<PoiDefinition, ConfigEntry<bool>> _markers = new();
     private readonly List<ZDO> _nearObjects = new();
     private readonly List<ZDO> _farObjects = new();
+    private Collider[] _nearColliders = new Collider[256];
     private static readonly FieldInfo LocationHashesField = AccessTools.Field(typeof(ZoneSystem), "m_locationsByHash");
     private static readonly FieldInfo PinsField = AccessTools.Field(typeof(Minimap), "m_pins");
 
@@ -88,15 +89,24 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
                 TryMark(map, position, target, definition);
         }
 
-        // Some placed prefabs can be active in the scene before their ZDO is available.
-        foreach (MineRock rock in FindObjectsByType<MineRock>(FindObjectsSortMode.None))
-            TryMarkComponent(map, position, rock);
-        foreach (MineRock5 rock in FindObjectsByType<MineRock5>(FindObjectsSortMode.None))
-            TryMarkComponent(map, position, rock);
-        foreach (Vegvisir vegvisir in FindObjectsByType<Vegvisir>(FindObjectsSortMode.None))
-            TryMarkComponent(map, position, vegvisir);
-        foreach (Trader trader in FindObjectsByType<Trader>(FindObjectsSortMode.None))
-            TryMarkComponent(map, position, trader);
+        // Nearby scene objects can be active before their ZDO is available.
+        int count;
+        do
+        {
+            count = Physics.OverlapSphereNonAlloc(position, MarkerRange, _nearColliders);
+            if (count < _nearColliders.Length) break;
+            Array.Resize(ref _nearColliders, _nearColliders.Length * 2);
+        } while (true);
+        for (int index = 0; index < count; index++)
+        {
+            Collider collider = _nearColliders[index];
+            if (collider == null) continue;
+            TryMarkComponent(map, position, collider.GetComponentInParent<MineRock>());
+            TryMarkComponent(map, position, collider.GetComponentInParent<MineRock5>());
+            TryMarkComponent(map, position, collider.GetComponentInParent<Vegvisir>());
+            TryMarkComponent(map, position, collider.GetComponentInParent<Trader>());
+        }
+        Array.Clear(_nearColliders, 0, count);
     }
 
     private void TryMarkComponent(Minimap map, Vector3 player, Component component)

@@ -23,6 +23,7 @@ $entries = [ordered]@{
     'manifest.json' = $manifestPath
     'README.md' = (Join-Path $root 'README.md')
     'icon.png' = (Join-Path $root 'package\icon.png')
+    'CHANGELOG.md' = (Join-Path $root 'CHANGELOG.md')
 }
 foreach ($source in $entries.Values) {
     if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing package file: $source" }
