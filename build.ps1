@@ -40,17 +40,14 @@ foreach ($path in @($dist, $archive)) {
 New-Item -ItemType Directory -Path $dist -Force | Out-Null
 New-Item -ItemType Directory -Path $archive -Force | Out-Null
 
-$folder = Join-Path $dist "DadsAdventureMapping-$($manifest.version_number)"
-$zip = Join-Path $dist "DadsAdventureMapping-$($manifest.version_number).zip"
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
-foreach ($old in @($folder, $zip)) {
-    if (Test-Path -LiteralPath $old) {
-        $item = Get-Item -LiteralPath $old
-        $archivedName = if ($item.PSIsContainer) { "$($item.Name)-$stamp" } else { "$($item.BaseName)-$stamp$($item.Extension)" }
-        Move-Item -LiteralPath $old -Destination (Join-Path $archive $archivedName)
-    }
+foreach ($item in Get-ChildItem -LiteralPath $dist -Filter 'DadsAdventureMapping-*') {
+    $archivedName = if ($item.PSIsContainer) { "$($item.Name)-$stamp" } else { "$($item.BaseName)-$stamp$($item.Extension)" }
+    Move-Item -LiteralPath $item.FullName -Destination (Join-Path $archive $archivedName)
 }
 
+$folder = Join-Path $dist "DadsAdventureMapping-$($manifest.version_number)"
+$zip = Join-Path $dist "DadsAdventureMapping-$($manifest.version_number).zip"
 New-Item -ItemType Directory -Path $folder | Out-Null
 foreach ($entry in $entries.GetEnumerator()) {
     Copy-Item -LiteralPath $entry.Value -Destination (Join-Path $folder $entry.Key)

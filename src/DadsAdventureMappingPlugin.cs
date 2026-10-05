@@ -12,7 +12,7 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
 {
     public const string Guid = "com.dadisbored.dadsadventuremapping";
     public const string Name = "DadsAdventureMapping";
-    public const string Version = "1.0.0";
+    public const string Version = "1.0.1";
     internal const float MarkerRange = 25f;
 
     internal static ConfigEntry<float> RevealMultiplier = null!;
@@ -128,14 +128,14 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
 [HarmonyPatch(typeof(Minimap), "Explore", new[] { typeof(Vector3), typeof(float) })]
 internal static class MovingExplorePatch
 {
-    private static void Prefix(Vector3 pos, ref float radius)
+    private static void Prefix(Vector3 __0, ref float __1)
     {
         Player player = Player.m_localPlayer;
         if (player == null) return;
         Vector3 current = player.transform.position;
-        float dx = current.x - pos.x;
-        float dz = current.z - pos.z;
+        float dx = current.x - __0.x;
+        float dz = current.z - __0.z;
         if (dx * dx + dz * dz <= 1f)
-            radius *= Mathf.Clamp(DadsAdventureMappingPlugin.RevealMultiplier.Value, 2f, 5f);
+            __1 *= Mathf.Clamp(DadsAdventureMappingPlugin.RevealMultiplier.Value, 2f, 5f);
     }
 }
