@@ -6,7 +6,8 @@ namespace DadsAdventureMapping;
 
 internal enum PoiCategory
 {
-    Towers, Houses, ResourceVeins, Tombs, Dolmens, Chambers, Crypts, Caves, Mines,
+    Towers, Houses, ResourceVeins, Tombs, Dolmens, Crypts, Caves, Mines,
+    HildirLocations,
     Villages, TarPits, BossAltars, BossVegvisirs, Camps, Ruins, Fortresses,
     Farms, Merchants, Runestones, Wells, Shipwrecks, StoneCircles, Landmarks,
     Nests, Excavations, Spawners
@@ -31,8 +32,8 @@ internal sealed class PoiDefinition
         SettingName = PoiCatalog.DisplayName(key);
         PinLabel = PoiCatalog.PinLabel(key);
         DefaultEnabled = category == PoiCategory.Towers || category == PoiCategory.ResourceVeins ||
-            category == PoiCategory.Tombs || category == PoiCategory.Chambers ||
-            category == PoiCategory.Crypts || category == PoiCategory.Caves ||
+            category == PoiCategory.Tombs || category == PoiCategory.Crypts ||
+            category == PoiCategory.Caves ||
             category == PoiCategory.Mines;
     }
 }
@@ -51,17 +52,18 @@ internal static class PoiCatalog
         AddLocations(PoiCategory.Houses, "WoodHouse1 WoodHouse2 WoodHouse3 WoodHouse4 WoodHouse5 WoodHouse6 WoodHouse7 WoodHouse8 WoodHouse9 WoodHouse10 WoodHouse11 WoodHouse12 WoodHouse13 StoneHouse1 StoneHouse2 StoneHouse3 StoneHouse4 StoneHouse5 StoneHouse1_heath StoneHouse2_heath StoneHouse5_heath SwampHut1 SwampHut2 SwampHut3 SwampHut4 SwampHut5 AbandonedLogCabin02 AbandonedLogCabin03 AbandonedLogCabin04");
         AddLocations(PoiCategory.Tombs, "Grave1 MountainGrave01");
         AddLocations(PoiCategory.Dolmens, "Dolmen01 Dolmen02 Dolmen03");
-        // Crypt2/3/4 are the Black Forest burial chamber locations; SunkenCrypt is a swamp crypt.
-        AddLocations(PoiCategory.Chambers, "Crypt2 Crypt3 Crypt4");
-        AddLocations(PoiCategory.Crypts, "SunkenCrypt1 SunkenCrypt2 SunkenCrypt3 SunkenCrypt4 Hildir_crypt");
-        AddLocations(PoiCategory.Caves, "TrollCave TrollCave02 MountainCave01 MountainCave02 Hildir_cave MorgenHole1 MorgenHole2 MorgenHole3");
+        // Crypt2/3/4 are Black Forest burial chambers and share the Tomb switch.
+        AddLocations(PoiCategory.Tombs, "Crypt2 Crypt3 Crypt4");
+        AddLocations(PoiCategory.Crypts, "SunkenCrypt1 SunkenCrypt2 SunkenCrypt3 SunkenCrypt4");
+        AddLocations(PoiCategory.Caves, "TrollCave TrollCave02 MountainCave01 MountainCave02 MorgenHole1 MorgenHole2 MorgenHole3");
+        AddLocations(PoiCategory.HildirLocations, "Hildir_cave Hildir_crypt Hildir_plainsfortress");
         AddLocations(PoiCategory.Mines, "Mistlands_DvergrTownEntrance1 Mistlands_DvergrTownEntrance2");
         AddLocations(PoiCategory.Villages, "WoodVillage1");
         AddLocations(PoiCategory.TarPits, "TarPit1 TarPit2 TarPit3");
         AddLocations(PoiCategory.BossAltars, "Eikthyrnir GDKing Bonemass Dragonqueen GoblinKing FaderLocation Mistlands_DvergrBossEntrance1");
         AddLocations(PoiCategory.Camps, "Greydwarf_camp1 Greydwarf_camp2 Greydwarf_camp3 GoblinCamp1 GoblinCamp2");
         AddLocations(PoiCategory.Ruins, "SwampRuin1 SwampRuin2 Ruin1 Ruin2 Ruin3 CharredRuins1 CharredRuins2 CharredRuins3 CharredRuins4 AshlandRuins");
-        AddLocations(PoiCategory.Fortresses, "Castle Fort1 CharredFortress FortressRuins Hildir_plainsfortress");
+        AddLocations(PoiCategory.Fortresses, "Castle Fort1 CharredFortress FortressRuins");
         AddLocations(PoiCategory.Farms, "WoodFarm1");
         AddLocations(PoiCategory.Merchants, "Vendor_BlackForest Hildir_camp");
         AddLocations(PoiCategory.Runestones, "Runestone_Greydwarfs Runestone_Draugr Runestone_Meadows Runestone_Boars Runestone_Swamps Runestone_Mountains Runestone_BlackForest Runestone_Plains Runestone_Mistlands Runestone_Ashlands DrakeLorestone");
@@ -75,6 +77,7 @@ internal static class PoiCatalog
 
         AddObjects(PoiCategory.ResourceVeins, "MineRock_Copper MineRock_Tin MineRock_Iron MineRock_Obsidian MineRock_Meteorite MineRock_Stone rock4_copper silvervein mudpile mudpile2 FlametalRockstand");
         AddObjects(PoiCategory.BossVegvisirs, "Vegvisir_Bonemass Vegvisir_DNBoss Vegvisir_DragonQueen Vegvisir_Eikthyr Vegvisir_Fader Vegvisir_GDKing Vegvisir_GoblinKing Vegvisir_SeekerQueen Vegvisir_placeofmystery Vegvisir_placeofmystery_2 Vegvisir_placeofmystery_3");
+        AddObjects(PoiCategory.Merchants, "Haldor Hildir BogWitch BogWitch_Hut");
     }
 
     private static void AddLocations(PoiCategory category, string names)
@@ -99,7 +102,7 @@ internal static class PoiCatalog
 
     private static PoiDefinition GetDefinition(string name, PoiCategory category)
     {
-        string key = FamilyKey(name);
+        string key = FamilyKey(name, category);
         if (!Families.TryGetValue(key, out PoiDefinition definition))
         {
             definition = new PoiDefinition(key, category);
@@ -111,11 +114,45 @@ internal static class PoiCatalog
         return definition;
     }
 
-    private static string FamilyKey(string name)
+    private static string FamilyKey(string name, PoiCategory category)
     {
-        // Only numbered variants of the same prefab stem share a setting.
-        // The old and new copper rock prefabs both represent copper deposits.
-        if (name.Equals("rock4_copper", StringComparison.OrdinalIgnoreCase)) return "MineRock_Copper";
+        switch (category)
+        {
+            case PoiCategory.Towers: return "Tower";
+            case PoiCategory.Houses: return "House";
+            case PoiCategory.Tombs: return "Tomb";
+            case PoiCategory.Crypts: return "Crypt";
+            case PoiCategory.Caves: return "Cave";
+            case PoiCategory.Mines: return "Mine";
+            case PoiCategory.HildirLocations: return "Hildir Locations";
+            case PoiCategory.BossVegvisirs: return "Vegvisir";
+            case PoiCategory.Villages: return "Village";
+            case PoiCategory.TarPits: return "Tar Pit";
+            case PoiCategory.BossAltars: return "Boss Site";
+            case PoiCategory.Camps: return "Camp";
+            case PoiCategory.Ruins: return "Ruin";
+            case PoiCategory.Fortresses: return "Fortress";
+            case PoiCategory.Farms: return "Farm";
+            case PoiCategory.Runestones: return "Runestone";
+            case PoiCategory.Wells: return "Well";
+            case PoiCategory.Shipwrecks: return "Shipwreck";
+            case PoiCategory.StoneCircles: return "Stone Circle";
+            case PoiCategory.Nests: return "Nest";
+            case PoiCategory.Excavations: return "Excavation";
+            case PoiCategory.Spawners: return "Spawner";
+            case PoiCategory.Merchants:
+                if (name == "Vendor_BlackForest" || name == "Haldor") return "Haldor";
+                if (name == "Hildir_camp" || name == "Hildir") return "Hildir";
+                return "Bog Witch";
+            case PoiCategory.ResourceVeins:
+                if (name == "rock4_copper" || name == "MineRock_Copper") return "Copper";
+                if (name == "MineRock_Tin") return "Tin";
+                if (name == "MineRock_Iron" || name == "mudpile" || name == "mudpile2") return "Iron";
+                if (name == "silvervein") return "Silver";
+                if (name == "FlametalRockstand") return "Flametal";
+                return name.Replace("MineRock_", string.Empty);
+        }
+        // Other numbered variants of the same prefab stem share a setting.
         return Regex.Replace(name, "[0-9]+", string.Empty).TrimEnd('_');
     }
 
@@ -132,45 +169,14 @@ internal static class PoiCatalog
     {
         switch (key)
         {
-            case "Dolmen": return "Dolmens";
-            case "Crypt": return "Burial Chambers";
-            case "GDKing": return "Elder Altars";
-            case "Eikthyrnir": return "Eikthyr Altars";
-            case "Dragonqueen": return "Moder Altars";
-            case "GoblinKing": return "Yagluth Altars";
-            case "Mistlands_DvergrTownEntrance": return "Infested Mines";
-            case "Mistlands_DvergrBossEntrance": return "Queen Entrances";
-            case "Mistlands_GuardTower_new": return "Mistlands Guard Towers";
-            case "Mistlands_GuardTower_ruined_new": return "Mistlands Ruined Guard Towers";
-            case "CharredTowerRuins_dvergr": return "Dvergr Charred Tower Ruins";
-            case "MorgenHole": return "Morgen Caves";
-            case "Vegvisir_placeofmystery": return "Place of Mystery Vegvisirs";
-            case "MineRock_Copper": return "Copper Deposits";
-            case "MineRock_Tin": return "Tin Deposits";
-            case "MineRock_Iron": return "Iron Deposits";
-            case "MineRock_Obsidian": return "Obsidian Deposits";
-            case "MineRock_Meteorite": return "Meteorite Deposits";
-            case "MineRock_Stone": return "Stone Deposits";
-            case "silvervein": return "Silver Veins";
-            case "FlametalRockstand": return "Flametal Veins";
-            case "mudpile": return "Mud Piles";
-            default:
-                string readable = Readable(key);
-                if (readable.EndsWith("House", StringComparison.Ordinal)) return readable + "s";
-                if (readable.EndsWith("s", StringComparison.Ordinal)) return readable;
-                return readable + "s";
-        }
-    }
-
-    internal static string PinLabel(string key)
-    {
-        switch (key)
-        {
-            case "Crypt": return "Burial Chamber";
-            case "Mistlands_DvergrTownEntrance": return "Infested Mine";
+            case "GDKing": return "Elder Altar";
+            case "Eikthyrnir": return "Eikthyr Altar";
+            case "Dragonqueen": return "Moder Altar";
+            case "GoblinKing": return "Yagluth Altar";
             case "Mistlands_DvergrBossEntrance": return "Queen Entrance";
-            case "MorgenHole": return "Morgen Cave";
             default: return Readable(key);
         }
     }
+
+    internal static string PinLabel(string key) => DisplayName(key);
 }

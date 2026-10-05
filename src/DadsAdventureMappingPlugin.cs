@@ -14,7 +14,7 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
 {
     public const string Guid = "com.dadisbored.dadsadventuremapping";
     public const string Name = "DadsAdventureMapping";
-    public const string Version = "1.0.4";
+    public const string Version = "1.0.5";
     internal const float MarkerRange = 25f;
 
     internal static ConfigEntry<float> RevealMultiplier = null!;
@@ -95,6 +95,8 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
             TryMarkComponent(map, position, rock);
         foreach (Vegvisir vegvisir in FindObjectsByType<Vegvisir>(FindObjectsSortMode.None))
             TryMarkComponent(map, position, vegvisir);
+        foreach (Trader trader in FindObjectsByType<Trader>(FindObjectsSortMode.None))
+            TryMarkComponent(map, position, trader);
     }
 
     private void TryMarkComponent(Minimap map, Vector3 player, Component component)
