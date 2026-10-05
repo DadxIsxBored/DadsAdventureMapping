@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
@@ -13,11 +14,15 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
 {
     public const string Guid = "com.dadisbored.dadsadventuremapping";
     public const string Name = "DadsAdventureMapping";
-    public const string Version = "1.0.2";
+    public const string Version = "1.0.3";
     internal const float MarkerRange = 25f;
 
     internal static ConfigEntry<float> RevealMultiplier = null!;
     private readonly Dictionary<PoiCategory, ConfigEntry<bool>> _markers = new();
+    private readonly List<ZDO> _nearObjects = new();
+    private readonly List<ZDO> _farObjects = new();
+    private static readonly FieldInfo LocationHashesField = AccessTools.Field(typeof(ZoneSystem), "m_locationsByHash");
+    private static readonly FieldInfo PinsField = AccessTools.Field(typeof(Minimap), "m_pins");
 
     private Harmony? _harmony;
     private float _nextScan;
@@ -86,7 +91,13 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
 
         // LocationProxy ZDOs cover locations whose Location component is inactive or absent.
         // Resource deposits and Vegvisirs are networked objects rather than zone locations.
-        foreach (ZDO zdo in zdoMan.m_objectsByID.Values)
+        _nearObjects.Clear();
+        _farObjects.Clear();
+        zdoMan.FindSectorObjects(ZoneSystem.GetZone(position), SimulationDistance.OriginalDistance,
+            _nearObjects, _farObjects);
+        Dictionary<int, ZoneSystem.ZoneLocation> locationsByHash =
+            (Dictionary<int, ZoneSystem.ZoneLocation>)LocationHashesField.GetValue(zones);
+        foreach (ZDO zdo in _nearObjects)
         {
             if (zdo == null || !zdo.IsValid()) continue;
             Vector3 target = zdo.GetPosition();
@@ -95,7 +106,7 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
             if (prefab == PoiCatalog.LocationProxyHash)
             {
                 int locationHash = zdo.GetInt(ZDOVars.s_location);
-                if (zones.m_locationsByHash.TryGetValue(locationHash, out ZoneSystem.ZoneLocation location) &&
+                if (locationsByHash.TryGetValue(locationHash, out ZoneSystem.ZoneLocation location) &&
                     PoiCatalog.TryGetLocation(location.m_prefabName, out PoiCategory category))
                     TryMark(map, position, target, category);
             }
@@ -128,7 +139,7 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
         if (!_markers[category].Value) return;
 
         // Existing native pins survive reloads; checking them also prevents marking a user-pinned site twice.
-        foreach (Minimap.PinData pin in map.m_pins)
+        foreach (Minimap.PinData pin in (List<Minimap.PinData>)PinsField.GetValue(map))
         {
             float px = pin.m_pos.x - target.x;
             float pz = pin.m_pos.z - target.z;
