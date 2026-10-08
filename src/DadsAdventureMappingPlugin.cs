@@ -14,7 +14,7 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
 {
     public const string Guid = "com.dadisbored.dadsadventuremapping";
     public const string Name = "DadsAdventureMapping";
-    public const string Version = "1.0.7";
+    public const string Version = "1.0.8";
     internal const float MarkerRange = 25f;
 
     internal static ConfigEntry<float> RevealMultiplier = null!;
@@ -129,7 +129,12 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
         {
             float px = pin.m_pos.x - target.x;
             float pz = pin.m_pos.z - target.z;
-            if (px * px + pz * pz < 16f) return;
+            if (px * px + pz * pz < 16f)
+            {
+                if (definition.Key == "Flametal" && pin.m_name == "Leviathan Lava")
+                    pin.m_name = definition.PinLabel;
+                return;
+            }
         }
         Minimap.PinType icon = definition.Category == PoiCategory.ResourceVeins ? Minimap.PinType.Icon2 : Minimap.PinType.Icon3;
         map.AddPin(target, icon, definition.PinLabel, true, false, Player.m_localPlayer.GetPlayerID());
