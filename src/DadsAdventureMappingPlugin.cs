@@ -14,7 +14,7 @@ public sealed class DadsAdventureMappingPlugin : BaseUnityPlugin
 {
     public const string Guid = "com.dadisbored.dadsadventuremapping";
     public const string Name = "DadsAdventureMapping";
-    public const string Version = "1.0.6";
+    public const string Version = "1.0.7";
     internal const float MarkerRange = 25f;
 
     internal static ConfigEntry<float> RevealMultiplier = null!;

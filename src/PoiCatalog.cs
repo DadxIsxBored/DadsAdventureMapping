@@ -70,12 +70,13 @@ internal static class PoiCatalog
         AddLocations(PoiCategory.Wells, "SwampWell1 MountainWell1");
         AddLocations(PoiCategory.Shipwrecks, "ShipWreck01 ShipWreck02 ShipWreck03 ShipWreck04");
         AddLocations(PoiCategory.StoneCircles, "StoneCircle StoneHenge1 StoneHenge2 StoneHenge3 StoneHenge4 StoneHenge5 StoneHenge6 ShipSetting01");
-        AddLocations(PoiCategory.Landmarks, "StartTemple Waymarker01 Waymarker02 PlaceofMystery1 PlaceofMystery2 PlaceofMystery3 Mistlands_Harbour1 Mistlands_Viaduct1 Mistlands_Viaduct2 Mistlands_RockSpire1 Mistlands_Giant1 Mistlands_Giant2 Mistlands_RoadPost1 Mistlands_StatueGroup1 Mistlands_Statue1 Mistlands_Statue2 Mistlands_Swords1 Mistlands_Swords2 Mistlands_Swords3 LeviathanLava SulfurArch");
+        AddLocations(PoiCategory.Landmarks, "StartTemple Waymarker01 Waymarker02 PlaceofMystery1 PlaceofMystery2 PlaceofMystery3 Mistlands_Harbour1 Mistlands_Viaduct1 Mistlands_Viaduct2 Mistlands_RockSpire1 Mistlands_Giant1 Mistlands_Giant2 Mistlands_RoadPost1 Mistlands_StatueGroup1 Mistlands_Statue1 Mistlands_Statue2 Mistlands_Swords1 Mistlands_Swords2 Mistlands_Swords3 SulfurArch");
+        AddLocations(PoiCategory.ResourceVeins, "LeviathanLava");
         AddLocations(PoiCategory.Nests, "DrakeNest01 VoltureNest");
         AddLocations(PoiCategory.Excavations, "Mistlands_Excavation1 Mistlands_Excavation2 Mistlands_Excavation3");
         AddLocations(PoiCategory.Spawners, "FireHole InfestedTree01 CharredStone_Spawner");
 
-        AddObjects(PoiCategory.ResourceVeins, "MineRock_Copper MineRock_Tin MineRock_Iron MineRock_Obsidian MineRock_Meteorite MineRock_Stone rock4_copper silvervein mudpile mudpile2 FlametalRockstand");
+        AddObjects(PoiCategory.ResourceVeins, "MineRock_Copper MineRock_Tin MineRock_Iron MineRock_Obsidian MineRock_Meteorite MineRock_Stone rock4_copper silvervein mudpile mudpile2 FlametalRockstand LeviathanLava");
         AddObjects(PoiCategory.BossVegvisirs, "Vegvisir_Bonemass Vegvisir_DNBoss Vegvisir_DragonQueen Vegvisir_Eikthyr Vegvisir_Fader Vegvisir_GDKing Vegvisir_GoblinKing Vegvisir_SeekerQueen Vegvisir_placeofmystery Vegvisir_placeofmystery_2 Vegvisir_placeofmystery_3");
         AddObjects(PoiCategory.Merchants, "Haldor Hildir BogWitch BogWitch_Hut");
     }
@@ -149,7 +150,7 @@ internal static class PoiCatalog
                 if (name == "MineRock_Tin") return "Tin";
                 if (name == "MineRock_Iron" || name == "mudpile" || name == "mudpile2") return "Iron";
                 if (name == "silvervein") return "Silver";
-                if (name == "FlametalRockstand") return "Flametal";
+                if (name == "FlametalRockstand" || name == "LeviathanLava") return "Flametal";
                 return name.Replace("MineRock_", string.Empty);
         }
         // Other numbered variants of the same prefab stem share a setting.
