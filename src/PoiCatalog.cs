@@ -7,13 +7,13 @@ namespace DadsAdventureMapping;
 internal enum PoiCategory
 {
     Towers, Houses, ResourceVeins, Tombs, Dolmens, Crypts, Caves, Mines,
-    HildirLocations,
+    HildirLocations, Morkhalla,
     Villages, TarPits, BossAltars, BossVegvisirs, Camps, Ruins, Fortresses,
     Farms, Merchants, Runestones, Wells, Shipwrecks, StoneCircles, Landmarks,
     Nests, Excavations, Spawners
 }
 
-// Names below come from the Valheim 1.0.16 _ZoneSystem and _LocationList
+// Names below come from the Valheim 1.0.16 and 1.0.17 _ZoneSystem and _LocationList
 // prefabs in valheim_Data/StreamingAssets/SoftRef/Bundles, plus object prefab
 // paths in manifest_extended. Only actual prefab names are accepted.
 internal sealed class PoiDefinition
@@ -34,7 +34,7 @@ internal sealed class PoiDefinition
         DefaultEnabled = category == PoiCategory.Towers || category == PoiCategory.ResourceVeins ||
             category == PoiCategory.Tombs || category == PoiCategory.Crypts ||
             category == PoiCategory.Caves ||
-            category == PoiCategory.Mines;
+            category == PoiCategory.Mines || category == PoiCategory.Morkhalla;
     }
 }
 
@@ -58,6 +58,8 @@ internal static class PoiCatalog
         AddLocations(PoiCategory.Caves, "TrollCave TrollCave02 MountainCave01 MountainCave02 MorgenHole1 MorgenHole2 MorgenHole3");
         AddLocations(PoiCategory.HildirLocations, "Hildir_cave Hildir_crypt Hildir_plainsfortress");
         AddLocations(PoiCategory.Mines, "Mistlands_DvergrTownEntrance1 Mistlands_DvergrTownEntrance2");
+        // The Deep North location is MorkBorg; DG_MorkHalla is its generated interior.
+        AddLocations(PoiCategory.Morkhalla, "MorkBorg");
         AddLocations(PoiCategory.Villages, "WoodVillage1");
         AddLocations(PoiCategory.TarPits, "TarPit1 TarPit2 TarPit3");
         AddLocations(PoiCategory.BossAltars, "Eikthyrnir GDKing Bonemass Dragonqueen GoblinKing FaderLocation Mistlands_DvergrBossEntrance1");
@@ -125,6 +127,7 @@ internal static class PoiCatalog
             case PoiCategory.Crypts: return "Crypt";
             case PoiCategory.Caves: return "Cave";
             case PoiCategory.Mines: return "Mine";
+            case PoiCategory.Morkhalla: return "Morkhalla";
             case PoiCategory.HildirLocations: return "Hildir Locations";
             case PoiCategory.BossVegvisirs: return "Vegvisir";
             case PoiCategory.Villages: return "Village";

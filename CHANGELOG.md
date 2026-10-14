@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.9
+
+- Added a default-enabled Morkhalla marker for the Deep North `MorkBorg` location that generates `DG_MorkHalla`.
+
 ## 1.0.8
 
 - Rename nearby saved Flametal ore pillar pins from Leviathan Lava to Flametal.
